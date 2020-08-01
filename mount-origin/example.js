@@ -1,7 +1,4 @@
-let json = {
-	name : "adnan",
-	family : "moradi"
-};
+
 
 
 let ws ;
@@ -91,7 +88,18 @@ window.onload = function(){
 	let fileReader = new FileReader();
 
 	fileReader.addEventListener('load',e=>{
-		ws.send(e.target.result);
+
+		let json= {
+			
+			total :file.size ,
+			filename :file.name ,
+			action : "upload",
+			len : e.target.result.byteLength,
+			data : e.target.result
+		
+		};
+		console.log(offset);
+		ws.send(JSON.stringify(json));
 
 		offset +=e.target.result.byteLength;
 
@@ -110,7 +118,7 @@ window.onload = function(){
 
 
 	document.getElementById('b').addEventListener('click',function(){
-		ws.send(JSON.stringify(json));
+			readSlice();
 	});
 	
 }

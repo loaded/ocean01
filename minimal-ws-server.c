@@ -18,7 +18,10 @@
 #include <string.h>
 #include <signal.h>
 #include <jansson.h>
-
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 struct msg {
 	void *payload; /* is malloc'd */
@@ -45,8 +48,9 @@ struct per_session_data__minimal {
 
 	struct incoming_data *current;	
 
-
-
+	char filename[128];
+	int fd;
+	int state;
 
 
 	int last; /* the last message number we sent */
@@ -60,7 +64,7 @@ struct per_vhost_data__minimal {
 	const struct lws_protocols *protocol;
 
 	struct per_session_data__minimal *pss_list; /* linked-list of live pss*/
-
+	
 	struct msg amsg; /* the one pending message... */
 	int current; /* the current message number we are caching */
 };
@@ -75,6 +79,111 @@ __minimal_destroy_message(void *_msg)
 	free(msg->payload);
 	msg->payload = NULL;
 	msg->len = 0;
+}
+
+
+static int file_upload(struct lws *wsi,struct per_session_data__minimal *pss,json_t *root){
+
+
+	json_t *total_length = json_object_get(root,"total");
+
+	json_t *name = json_object_get(root,"filename");
+	json_t *arr = json_object_get(root,"data");
+    	
+	json_t *ln = json_object_get(root,"len");
+
+
+	long long int t_length = json_integer_value(total_length);
+
+
+	long long int len = json_integer_value(ln);
+
+	char *buf = json_string_value(arr);
+	char *filename = json_string_value(name);
+
+	int state ;
+	
+
+	// ?? check some wired condition like total == len for first time or some milituus action
+
+	if(pss->total == len)
+		state = 0;
+	else if(pss->total == t_length)
+		state = 2;
+	else 
+		state = 1;
+
+	
+
+
+	switch(pss->state){
+		case 0 : 
+			lws_strncpy(pss->filename,filename,sizeof(pss->filename)-1);	
+			lws_filename_purify_inplace(pss->filename);
+			pss->fd = lws_open(pss->filename,O_CREAT | O_TRUNC | O_RDWR ,0600);
+
+			if(pss->fd == -1){
+			
+				lwsl_notice("failed to open file %s\n",pss->filename);
+				return 1;
+			}
+
+			break;
+		case 1 : 
+		case 2 : 
+			if(len){
+				int n;
+
+				pss->total += len;
+				n = write(pss->fd,buf,len);
+
+				if(n < len)
+					lwsl_notice("problem writing to file %d\n",errno);
+
+
+			}
+
+
+			if(state == 1)
+				break;
+
+
+			lwsl_user("%s : file upload done . written %lld \n",__func__,
+					pss->filename,pss->total);
+
+			close(pss->fd);
+
+			pss->fd = -1;
+			break;
+		default: 
+			break;
+	}
+
+	return 0;
+}
+
+
+static int router(struct lws *wsi,struct per_session_data__minimal *pss,json_t *root){
+
+
+	json_t *action = json_object_get(root,"action");
+
+	char *type = json_string_value(action);
+
+
+	printf("action is : %s\n",(const char *)type);
+
+	file_upload(wsi,pss,root);
+
+	/*
+	switch(type){
+	
+		case "upload" : 
+			file_upload(wsi,pss,root);
+			break;
+		default : 
+			break;
+	}*/
 }
 
 static int
@@ -107,6 +216,7 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 		/* add ourselves to the list of live pss held in the vhd */
 		lws_ll_fwd_insert(pss, pss_list, vhd->pss_list);
 		pss->wsi = wsi;
+		pss->total = 0;
 		pss->last = vhd->current;
 		break;
 
@@ -190,13 +300,13 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 			root = json_loads(only,0,&error);
 
 			if(!root)
-				printf("error");
+				fprintf(stderr,"json error on line %d : %s",error.line,error.text);
 			else
 			 {
+				router(wsi,pss,root);	
 			 
-			 	json_t* name_j = json_object_get(root,"name");
 
-				printf("%s name is this \n",json_string_value(name_j));
+			
 			 }
 
 						
