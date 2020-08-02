@@ -248,6 +248,8 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 		;
 		struct incoming_data *rec = (struct incoming_data *) malloc(sizeof(*rec));
 		rec->next = NULL;
+
+		printf("incoming data \n");
 		rec->buf = (char*) malloc(len);
 		strncpy(rec->buf,in,len);
 
@@ -268,6 +270,8 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 		
 		pss->total += len;
 		
+
+		printf("receiveing data \n");		
 
 
 
@@ -294,11 +298,14 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 			   	
 			}while(loop);
 
+
+
+			printf("entering jasson");
 			json_t *root;
 			json_error_t error;
 
 			root = json_loads(only,0,&error);
-
+				
 			if(!root)
 				fprintf(stderr,"json error on line %d : %s",error.line,error.text);
 			else

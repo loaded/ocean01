@@ -88,17 +88,23 @@ window.onload = function(){
 	let fileReader = new FileReader();
 
 	fileReader.addEventListener('load',e=>{
+		
 
-		let json= {
-			
-			total :file.size ,
-			filename :file.name ,
-			action : "upload",
-			len : e.target.result.byteLength,
-			data : e.target.result
+		let filename = file.name;
+		let arrayBuffer = e.target.result;
+		var dataview = new DataView(arrayBuffer,0,arrayBuffer.byteLength);
+		
+		let json = { 
+			name:'adnan',
+		        data : arrayBuffer,
+			end : ''
 		
 		};
-		console.log(offset);
+
+
+
+	
+	
 		ws.send(JSON.stringify(json));
 
 		offset +=e.target.result.byteLength;
