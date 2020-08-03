@@ -85,6 +85,8 @@ __minimal_destroy_message(void *_msg)
 static int file_upload(struct lws *wsi,struct per_session_data__minimal *pss,json_t *root){
 
 
+	printf("file upload\n");
+
 	json_t *total_length = json_object_get(root,"total");
 
 	json_t *name = json_object_get(root,"filename");
@@ -103,7 +105,7 @@ static int file_upload(struct lws *wsi,struct per_session_data__minimal *pss,jso
 
 	int state ;
 	
-
+	printf("total %lld  and length is : %lld  \n",pss->total,len);
 	// ?? check some wired condition like total == len for first time or some milituus action
 
 	if(pss->total == len)
@@ -116,7 +118,7 @@ static int file_upload(struct lws *wsi,struct per_session_data__minimal *pss,jso
 	
 
 
-	switch(pss->state){
+	switch(state){
 		case 0 : 
 			lws_strncpy(pss->filename,filename,sizeof(pss->filename)-1);	
 			lws_filename_purify_inplace(pss->filename);
@@ -257,7 +259,7 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 		if(pss->seq == NULL){
 			pss->seq = rec;
 			pss->current = NULL;
-			pss->total = 0;
+
 
 		}
 
@@ -299,7 +301,8 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 			}while(loop);
 
 
-
+			pss->seq = NULL;
+			pss->current = NULL;
 			printf("entering jasson");
 			json_t *root;
 			json_error_t error;

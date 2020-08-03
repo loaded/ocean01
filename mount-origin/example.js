@@ -83,19 +83,26 @@ window.onload = function(){
 	let fileElement = document.getElementById('upload');
 	fileElement.addEventListener('change',getFile);
 
-	
+	let filename ;
+	let length;
+	let total;
+
 
 	let fileReader = new FileReader();
 
 	fileReader.addEventListener('load',e=>{
 		
 
-		let filename = file.name;
+
 		let arrayBuffer = e.target.result;
-		var dataview = new DataView(arrayBuffer,0,arrayBuffer.byteLength);
+		length = e.target.result.byteLength;
+		total = file.size;
 		
 		let json = { 
-			name:'adnan',
+			filename : filename,
+			len : length,
+			total : total,
+			action : 'upload',
 		        data : arrayBuffer,
 			end : ''
 		
