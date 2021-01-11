@@ -1,1 +1,1 @@
-libwebsocket server with transgering file and json
+libwebsocket server with transfering  file and json
